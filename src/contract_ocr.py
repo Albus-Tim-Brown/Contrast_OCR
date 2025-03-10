@@ -61,6 +61,7 @@ def process_seal_ocr():
     model = create_model(model_name="PP-OCRv4_server_seal_det")
     # model = create_model(pipeline="../config/seal_recognition.yaml")
     output = model.predict("seal_text_det.png", batch_size=1)
+    # TODO Seal Recognition res
     for res in output:
         res.print()
 
