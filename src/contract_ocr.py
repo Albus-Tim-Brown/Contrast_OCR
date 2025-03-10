@@ -1,3 +1,5 @@
+import os
+
 import fitz
 import cv2
 import numpy as np
@@ -55,6 +57,17 @@ def process_pdf_ocr(pdf_path, output_dir, page_num=4):
 
 if __name__ == '__main__':
     PAGE_NUM = 4
-    pdf_path = "../input/pdf/xxx.pdf"
-    output_dir = '../output/contract'
-    process_pdf_ocr(pdf_path, output_dir, page_num=PAGE_NUM)
+
+    # Local Files
+    input_dir = "../input/pdf/"
+    output_dir = '../output/contract/'
+    for filename in os.listdir(input_dir):
+        if filename.endswith(".pdf"):
+            pdf_path = os.path.join(input_dir, filename)
+            output_dir = os.path.join(output_dir, f"{os.path.splitext(filename)[0]}")
+            os.makedirs(output_dir, exist_ok=True)
+            print(f"Processing: {pdf_path}")
+
+            process_pdf_ocr(pdf_path, output_dir, page_num=PAGE_NUM)
+
+    # TODO Network Files
