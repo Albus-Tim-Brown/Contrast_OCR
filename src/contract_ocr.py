@@ -56,14 +56,29 @@ def process_pdf_ocr(pdf_path, output_dir, page_num=4):
 
 
 # TODO Seal OCR
-def process_seal_ocr():
-    from paddlex import create_model
-    model = create_model(model_name="PP-OCRv4_server_seal_det")
-    # model = create_model(pipeline="../config/seal_recognition.yaml")
-    output = model.predict("seal_text_det.png", batch_size=1)
-    # TODO Seal Recognition res
-    for res in output:
-        res.print()
+def process_pdf_seal_ocr(pdf_path, output_dir):
+    ocr = PaddleOCR(use_angle_cls=True, lang='ch',
+                    det_db_unclip_ratio=2.5,
+                    max_side_len=2000)
+
+    with fitz.open(pdf_path) as pdf:
+        for pg in range(len(pdf)):
+            page = pdf[pg]
+            pix = page.getPixmap(matrix=fitz.Matrix(3, 3), alpha=False)
+            img = cv2.cvtColor(np.array(Image.frombytes("RGB", [pix.width, pix.height], pix.samples)),
+                               cv2.COLOR_RGB2BGR)
+
+            # seal_boxes = detect_seal_area(img)
+            seal_boxes = None
+            for i, box in enumerate(seal_boxes):
+                x1, y1, x2, y2 = box
+                seal_img = img[y1:y2, x1:x2]
+
+                seal_result = ocr.ocr(seal_img, cls=True)
+                for line in seal_result:
+                    print(f"Page{pg + 1} Seal{i + 1}: {line[1][0]}")
+
+                # cv2.imwrite(f"{output_dir}/seal_{pg}_{i}.jpg", seal_img)
 
 
 if __name__ == '__main__':
@@ -79,6 +94,5 @@ if __name__ == '__main__':
             os.makedirs(output_dir, exist_ok=True)
             print(f"Processing: {pdf_path}")
             process_pdf_ocr(pdf_path, output_dir, page_num=PAGE_NUM)
-    process_seal_ocr()
 
     # TODO Network Files
