@@ -55,6 +55,16 @@ def process_pdf_ocr(pdf_path, output_dir, page_num=4):
     save_ocr_results(result, imgs, output_dir)
 
 
+# TODO Seal OCR
+def process_seal_ocr():
+    from paddlex import create_model
+    model = create_model(model_name="PP-OCRv4_server_seal_det")
+    # model = create_model(pipeline="../config/seal_recognition.yaml")
+    output = model.predict("seal_text_det.png", batch_size=1)
+    for res in output:
+        res.print()
+
+
 if __name__ == '__main__':
     PAGE_NUM = 4
 
@@ -67,7 +77,7 @@ if __name__ == '__main__':
             output_dir = os.path.join(output_dir, f"{os.path.splitext(filename)[0]}")
             os.makedirs(output_dir, exist_ok=True)
             print(f"Processing: {pdf_path}")
-
             process_pdf_ocr(pdf_path, output_dir, page_num=PAGE_NUM)
+    process_seal_ocr()
 
     # TODO Network Files
