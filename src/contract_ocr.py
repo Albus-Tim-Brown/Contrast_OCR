@@ -14,7 +14,6 @@ def extract_text_from_pdf(pdf_path, ocr, pages_to_process, threshold=0.8):
     processed_results = []
     for page_idx, page_result in enumerate(result):
         if page_idx >= pages_to_process:
-            # 最后一页先不处理
             break
         if page_result is None:
             logging.debug(f"Empty page {page_idx + 1} detected, skip it.")
@@ -47,7 +46,8 @@ def save_ocr_results(result, imgs, output_dir):
 def process_pdf_ocr(pdf_path, output_dir):
     with fitz.open(pdf_path) as pdf:
         total_pages = pdf.page_count
-    pages_to_process = total_pages - 1  # 排除最后一页
+    pages_to_process = total_pages
+    # pages_to_process = total_pages - 1    # 不处理最后一页
 
     ocr = PaddleOCR(use_angle_cls=True, lang="ch", page_num=pages_to_process, use_gpu=0)
     processed_results = extract_text_from_pdf(pdf_path, ocr, pages_to_process, threshold=0.8)
