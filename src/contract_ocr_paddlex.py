@@ -1,9 +1,8 @@
-import os
 import json
+import os
 from difflib import SequenceMatcher
 
-import cv2
-import numpy as np
+import fitz
 from paddlex import create_pipeline
 
 
@@ -17,24 +16,6 @@ def create_output_folder():
     for folder in folders:
         os.makedirs(folder, exist_ok=True)
     return folders[0]
-
-
-def full_image_enhancement(img_path):
-    img = cv2.imread(img_path)
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    lab = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2LAB)
-    l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=4.0, tileGridSize=(16, 16))
-    l = clahe.apply(l)
-    enhanced_lab = cv2.merge((l, a, b))
-    enhanced_rgb = cv2.cvtColor(enhanced_lab, cv2.COLOR_LAB2RGB)
-    hsv = cv2.cvtColor(enhanced_rgb, cv2.COLOR_RGB2HSV)
-    hsv[:, :, 1] = hsv[:, :, 1] * 1.2
-    hsv[:, :, 2] = np.clip(hsv[:, :, 2] * 1.11, 0, 255)
-    enhanced = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-
-    return enhanced
-
 
 def process_json(json_file_path):
     with open(json_file_path, 'r', encoding='utf-8') as file:
@@ -66,43 +47,47 @@ def process_json(json_file_path):
         json.dump(best_matches, file, ensure_ascii=False, indent=4)
 
 
-def process_all_images(input_demo_folder, output_json_folder, pipelines):
-    image_files = [f for f in os.listdir(input_demo_folder)
-                   if f.endswith(('.jpg', '.png', '.jpeg'))]
+def process_pdf(pdf_path, output_json_folder, pipelines):
+    doc = fitz.open(pdf_path)
+    last_page = doc.load_page(doc.page_count - 1)
+    pix = last_page.get_pixmap()
+    output_image_path = os.path.join(output_json_folder, 'processed_images', 'last_page.png')
+    pix.save(output_image_path)
 
-    if not image_files:
-        print(f"Can not found images in {input_demo_folder}")
+    output = pipelines.predict(output_image_path)
+    json_file_path = os.path.join(output_json_folder, f"last_page_res.json")
+
+    for res in output:
+        res.print()
+        res.save_to_img(save_path="../output/seal")
+        res.save_to_json(save_path=json_file_path)
+
+    process_json(json_file_path)
+
+
+def process_all_images(input_demo_folder, output_json_folder, pipelines):
+    files = [f for f in os.listdir(input_demo_folder)
+             if f.endswith('.pdf')]
+
+    if not files:
+        print(f"Can not found pdfs in {input_demo_folder}")
         return
 
-    for image_file in image_files:
+    for file in files:
         try:
-            img_path = os.path.join(input_demo_folder, image_file)
-            enhanced_img = full_image_enhancement(img_path)
-
-            enhanced_file_name = f"enhanced_{image_file}"
-            enhanced_path = os.path.join(output_json_folder, 'processed_images', enhanced_file_name)
-            cv2.imwrite(enhanced_path, cv2.cvtColor(enhanced_img, cv2.COLOR_RGB2BGR))
-
-            output = pipelines.predict(enhanced_path)
-            json_file_path = os.path.join(output_json_folder,
-                                          f"{os.path.splitext(image_file)[0]}_res.json")
-
-            for res in output:
-                res.print()
-                res.save_to_img(save_path="../output/seal")
-                res.save_to_json(save_path=json_file_path)
-
-            process_json(json_file_path)
+            file_path = os.path.join(input_demo_folder, file)
+            if file.endswith('.pdf'):
+                process_pdf(file_path, output_json_folder, pipelines)
         except Exception as e:
-            print(f"Error processing {image_file}: {e}")
+            print(f"Error processing {file}: {e}")
             continue
 
 
 if __name__ == '__main__':
-    input_folder = "../input/demo"
+    input_folder = "../input/pdf"
     json_folder_path = "../output/seal/json"
     create_output_folder()
 
-    # pipeline = create_pipeline(pipeline="../config/layout_parsing_v2.yaml")
-    pipeline = create_pipeline(pipeline="layout_parsing_v2")
+    pipeline = create_pipeline(pipeline="../config/layout_parsing_v2.yaml")
+    # pipeline = create_pipeline(pipeline="layout_parsing_v2")
     process_all_images(input_folder, json_folder_path, pipeline)
