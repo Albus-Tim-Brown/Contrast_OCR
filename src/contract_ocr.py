@@ -1,4 +1,6 @@
 import os
+import re
+
 import fitz
 import cv2
 import numpy as np
@@ -7,6 +9,55 @@ from paddleocr import PaddleOCR, draw_ocr
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+def extract_key_info(processed_results):
+    sorted_results = sorted(processed_results, key=lambda x: (x['box'][1], x['box'][0]))
+
+    key_info = {}
+    current_text = ""
+    matched_keys = set()
+
+    for res in sorted_results:
+        text = res['text'].strip()
+        if not text: continue
+
+        if '授权方：' in text and '授权方' not in matched_keys:
+            start_idx = text.index('授权方：') + 4
+            key_info['授权方'] = text[start_idx:].strip()
+            matched_keys.add('授权方')
+            continue
+
+        if '被授权方：' in text and '被授权方' not in matched_keys:
+            start_idx = text.index('被授权方：') + 5
+            key_info['被授权方'] = text[start_idx:].strip()
+            matched_keys.add('被授权方')
+            continue
+
+        period_match = re.search(r'(\d{4}年\d{1,2}月\d{1,2}日)至(\d{4}年\d{1,2}月\d{1,2}日)', text)
+        if period_match and '授权期限' not in matched_keys:
+            key_info['授权期限'] = f"{period_match.group(1)}至{period_match.group(2)}"
+            matched_keys.add('授权期限')
+
+        if '查询授权方' in text or '用电信息' in text:
+            current_text += text
+            if '月的用电信息' in current_text and '查询时间段' not in matched_keys:
+                month_match = re.search(r'(\d{4}年\d{1,2}月至\d{4}年\d{1,2}月)', current_text)
+                if month_match:
+                    key_info['查询时间段'] = month_match.group(1)
+                    matched_keys.add('查询时间段')
+                current_text = ""
+
+        if '至' in text and '授权期限' not in key_info:
+            prev_res = sorted_results[sorted_results.index(res)-1] if sorted_results.index(res)>0 else None
+            if prev_res and abs(res['box'][1] - prev_res['box'][3]) < 10:
+                combined_text = prev_res['text'] + text
+                period_match = re.search(r'(\d{4}年\d{1,2}月\d{1,2}日)至(\d{4}年\d{1,2}月\d{1,2}日)', combined_text)
+                if period_match:
+                    key_info['授权期限'] = f"{period_match.group(1)}至{period_match.group(2)}"
+                    matched_keys.add('授权期限')
+
+    return key_info
 
 
 def extract_text_from_pdf(pdf_path, ocr, pages_to_process, threshold=0.8):
@@ -64,7 +115,9 @@ def process_pdf_ocr(pdf_path, output_dir):
             img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
             imgs.append(img)
 
-    save_ocr_results(result=ocr.ocr(pdf_path, cls=True), imgs=imgs, output_dir=output_dir)
+    # save_ocr_results(result=ocr.ocr(pdf_path, cls=True), imgs=imgs, output_dir=output_dir)
+    key_info = extract_key_info(processed_results)
+    print(key_info)
     return processed_results
 
 
