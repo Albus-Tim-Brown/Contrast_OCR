@@ -2,10 +2,15 @@
 使用PaddleX识别pdf合同文件最后一页的印章部分
 """
 import difflib
+import json
 import os
+import re
 
 import fitz
 from paddlex import create_pipeline
+
+authorizer_pattern = re.compile(r"授权方\s*：\s*(.+)$", re.DOTALL)
+authorized_pattern = re.compile(r"被授权方\s*：\s*(.+)$", re.DOTALL)
 
 def process_pdf(pdf_path, output_json_folder, pipelines):
     doc = fitz.open(pdf_path)
@@ -18,6 +23,7 @@ def process_pdf(pdf_path, output_json_folder, pipelines):
 
     seal_texts = []
     text_texts = []
+
     for res in output:
         prediction_result = res.json
         parsing_res_list = prediction_result.get('res', {}).get('parsing_res_list', [])
@@ -26,6 +32,8 @@ def process_pdf(pdf_path, output_json_folder, pipelines):
                 seal_texts.append(block.get('block_content'))
             if block.get('block_label') == 'text':
                 text_texts.append(block.get('block_content'))
+
+    matches = []
     for seal_text in seal_texts:
         best_match = None
         highest_similarity = 0
@@ -34,9 +42,21 @@ def process_pdf(pdf_path, output_json_folder, pipelines):
             if similarity > highest_similarity:
                 highest_similarity = similarity
                 best_match = text_text
-        print(f"{{{best_match}}}")
+        matches.append(best_match)
 
+    result = {}
+    for match in matches:
+        authorizer_match = authorizer_pattern.search(match)
+        if authorizer_match:
+            result["SealAuthorizer"] = authorizer_match.group(1).strip()
+        authorized_match = authorized_pattern.search(match)
+        if authorized_match:
+            result["SealAuthorized"] = authorized_match.group(1).strip()
+    json_output = json.dumps(result, ensure_ascii=False, indent=2)
+
+    print(json_output)
     os.remove(output_image_path)
+    return json_output
 
 
 if __name__ == '__main__':
@@ -46,4 +66,4 @@ if __name__ == '__main__':
 
     pipeline = create_pipeline(pipeline="../config/layout_parsing_v2.yaml")
     # pipeline = create_pipeline(pipeline="layout_parsing_v2")
-    process_pdf(input_file, json_folder_path, pipeline)
+    json_result = process_pdf(input_file, json_folder_path, pipeline)
