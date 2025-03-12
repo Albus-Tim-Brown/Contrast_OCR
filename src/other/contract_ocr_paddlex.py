@@ -59,7 +59,7 @@ def process_pdf(pdf_path, output_json_folder, pipelines):
 
     for res in output:
         res.print()
-        res.save_to_img(save_path="../output/seal")
+        res.save_to_img(save_path="../../output/seal")
         res.save_to_json(save_path=json_file_path)
 
     process_json(json_file_path)
