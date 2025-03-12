@@ -1,5 +1,5 @@
 """
-使用PaddleOCR识别pdf合同文件
+使用PaddleOCR识别pdf合同文件，不识别最后一页
 """
 import os
 import re
@@ -101,7 +101,7 @@ def save_ocr_results(result, imgs, output_dir):
         im_show.save(f'{output_dir}/result_page_{idx}.jpg')
 
 
-def process_pdf_ocr(pdf_path, output_dir):
+def process_pdf_text(pdf_path):
     with fitz.open(pdf_path) as pdf:
         total_pages = pdf.page_count
     # pages_to_process = total_pages
@@ -137,4 +137,4 @@ if __name__ == '__main__':
     os.makedirs(pdf_output_dir, exist_ok=True)
 
     print(f"Processing: {input_file}")
-    process_pdf_ocr(input_file, pdf_output_dir)
+    process_pdf_text(input_file)

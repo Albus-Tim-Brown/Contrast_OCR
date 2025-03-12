@@ -1,5 +1,5 @@
 """
-使用PaddleX识别pdf合同文件最后一页的印章部分
+使用PaddleX识别pdf合同文件，只识别最后一页
 """
 import difflib
 import json
@@ -9,7 +9,7 @@ import re
 import fitz
 from paddlex import create_pipeline
 
-def process_pdf(pdf_path, output_json_folder, pipelines):
+def process_pdf_seal(pdf_path, output_json_folder, pipelines):
     doc = fitz.open(pdf_path)
     last_page = doc.load_page(doc.page_count - 1)
     pix = last_page.get_pixmap()
@@ -65,4 +65,4 @@ if __name__ == '__main__':
 
     pipeline = create_pipeline(pipeline="../config/layout_parsing_v2.yaml")
     # pipeline = create_pipeline(pipeline="layout_parsing_v2")
-    json_result = process_pdf(input_file, json_folder_path, pipeline)
+    json_result = process_pdf_seal(input_file, json_folder_path, pipeline)
