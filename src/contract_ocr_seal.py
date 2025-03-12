@@ -9,9 +9,6 @@ import re
 import fitz
 from paddlex import create_pipeline
 
-authorizer_pattern = re.compile(r"授权方\s*：\s*(.+)$", re.DOTALL)
-authorized_pattern = re.compile(r"被授权方\s*：\s*(.+)$", re.DOTALL)
-
 def process_pdf(pdf_path, output_json_folder, pipelines):
     doc = fitz.open(pdf_path)
     last_page = doc.load_page(doc.page_count - 1)
@@ -45,6 +42,8 @@ def process_pdf(pdf_path, output_json_folder, pipelines):
         matches.append(best_match)
 
     result = {}
+    authorizer_pattern = re.compile(r"授权方\s*：\s*(.+)$", re.DOTALL)
+    authorized_pattern = re.compile(r"被授权方\s*：\s*(.+)$", re.DOTALL)
     for match in matches:
         authorizer_match = authorizer_pattern.search(match)
         if authorizer_match:

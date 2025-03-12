@@ -78,6 +78,10 @@ def extract_text_from_pdf(pdf_path, ocr, pages_to_process, threshold=0.8):
                 continue
             flat_box = [coordinate for point in box for coordinate in point]
             result_dict = {'box': flat_box, 'text': text}
+            # result_dict = {
+            #     'box': box,
+            #     'text': text
+            # }
             print(result_dict)
             processed_results.append(result_dict)
     return processed_results
@@ -100,8 +104,8 @@ def save_ocr_results(result, imgs, output_dir):
 def process_pdf_ocr(pdf_path, output_dir):
     with fitz.open(pdf_path) as pdf:
         total_pages = pdf.page_count
-    pages_to_process = total_pages
-    # pages_to_process = total_pages - 1    # 不处理最后一页
+    # pages_to_process = total_pages
+    pages_to_process = total_pages - 1    # 不处理最后一页
 
     ocr = PaddleOCR(use_angle_cls=True, lang="ch", page_num=pages_to_process, use_gpu=0)
     processed_results = extract_text_from_pdf(pdf_path, ocr, pages_to_process, threshold=0.8)
@@ -125,13 +129,12 @@ def process_pdf_ocr(pdf_path, output_dir):
 
 
 if __name__ == '__main__':
-    # Local Files
-    input_dir = "../input/pdf/"
-    base_output_dir = '../output/contract/'
-    for filename in os.listdir(input_dir):
-        if filename.endswith(".pdf"):
-            pdf_path = os.path.join(input_dir, filename)
-            pdf_output_dir = os.path.join(base_output_dir, f"{os.path.splitext(filename)[0]}")
-            os.makedirs(pdf_output_dir, exist_ok=True)
-            print(f"Processing: {pdf_path}")
-            process_pdf_ocr(pdf_path, pdf_output_dir)
+    input_file = "../input/pdf/xxx.pdf"
+    output_base_dir = '../output/contract/'
+
+    pdf_filename = os.path.basename(input_file)
+    pdf_output_dir = os.path.join(output_base_dir, os.path.splitext(pdf_filename)[0])
+    os.makedirs(pdf_output_dir, exist_ok=True)
+
+    print(f"Processing: {input_file}")
+    process_pdf_ocr(input_file, pdf_output_dir)
