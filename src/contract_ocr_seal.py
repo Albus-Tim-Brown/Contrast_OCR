@@ -1,3 +1,6 @@
+"""
+使用PaddleX识别pdf合同文件最后一页的印章部分
+"""
 import os
 
 import fitz

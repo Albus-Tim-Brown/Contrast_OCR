@@ -1,3 +1,6 @@
+"""
+使用PaddleOCR识别pdf合同文件
+"""
 import os
 import re
 
