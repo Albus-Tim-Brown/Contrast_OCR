@@ -17,7 +17,7 @@ def process_pdf_api():
     if not file.filename.lower().endswith('.pdf'):
         return jsonify({"error": "Please upload pdf file!"}), 400
 
-    temp_dir = "./temp"
+    temp_dir = ".\\temp"
     os.makedirs(temp_dir, exist_ok=True)
     temp_pdf_path = os.path.join(temp_dir, file.filename)
     file.save(temp_pdf_path)
@@ -31,6 +31,7 @@ def process_pdf_seal(pdf_path, output_json_folder, pipelines):
     last_page = doc.load_page(doc.page_count - 1)
     pix = last_page.get_pixmap()
     output_image_path = os.path.join(output_json_folder, 'seal', 'last_page.png')
+    os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
     pix.save(output_image_path)
 
     output = pipelines.predict(output_image_path)
@@ -76,5 +77,5 @@ def process_pdf_seal(pdf_path, output_json_folder, pipelines):
 
 
 if __name__ == '__main__':
-    pipeline = create_pipeline(pipeline="../config/layout_parsing_v2.yaml")
+    pipeline = create_pipeline(pipeline="./config/PP-StructureV3.yaml")
     app.run(host='0.0.0.0', port=5000)

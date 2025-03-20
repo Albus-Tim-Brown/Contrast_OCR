@@ -1,25 +1,35 @@
-FROM python:3.9-slim
+FROM python:3.11.9-slim
 LABEL authors="albus"
 
-# 使用国内Debian镜像源（如阿里云）加速apt-get
-RUN echo "deb http://mirrors.aliyun.com/debian/ bullseye main non-free contrib" > /etc/apt/sources.list \
-    && echo "deb http://mirrors.aliyun.com/debian-security/ bullseye-security main" >> /etc/apt/sources.list \
-    && echo "deb http://mirrors.aliyun.com/debian/ bullseye-updates main non-free contrib" >> /etc/apt/sources.list
+RUN echo "deb https://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list \
+    && echo "deb-src https://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" >> /etc/apt/sources.list \
+    && echo "deb https://mirrors.ustc.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list \
+    && echo "deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list \
+    && echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list \
+    && echo "deb-src https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list \
+    && echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security/ bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list \
+    && echo "deb-src https://mirrors.tuna.tsinghua.edu.cn/debian-security/ bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list
 
-# 合并apt-get命令并清理缓存
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libffi-dev \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/*
 
-# 设置pip镜像源（保持原有配置）
-RUN pip config set global.index-url https://mirrors.aliyun01.com/pypi/simple/
+# RUN pip config set global.index-url http://mirrors.aliyun.com/pypi/simple/
 
 WORKDIR /app
 COPY . /app
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+    paddlepaddle-gpu==3.0.0rc1 -i https://www.paddlepaddle.org.cn/packages/stable/cu123/ \
+    && pip install https://paddle-model-ecology.bj.bcebos.com/paddlex/whl/paddlex-3.0.0rc0-py3-n\
+    && pip install flaskone-any.whl
 
 EXPOSE 5000
 CMD ["python", "app.py"]
